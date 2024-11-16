@@ -1,0 +1,11 @@
+﻿{
+  "Group": "Customers",
+  "FriendlyName": "Must be assigned to customers",
+  "SystemName": "Customers.MustBeAssignedToCustomers",
+  "Version": "4.70.5",
+  "SupportedVersions": [ "4.70", "4.70.5" ],
+  "Author": "nopCommerce team",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Customers.API.dll",
+  "Description": "A plugin that provides REST APIs for managing customers."
+}

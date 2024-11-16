@@ -1,0 +1,366 @@
+﻿@*=============================================================
+   Postcodes4u Custom - CreateorUpdate Address Page
+           NOP 4.60 Updated KRF 2022.12.21
+           NOP 4.70 - No Change REQ           
+
+ ==============================================================*@
+
+@using Nop.Web.Models.Common
+@using Nop.Web.Components
+
+@model AddressModel
+
+@{
+    // Load Postcodes4u Styling CSS
+    // Load Postcodes4u Styling CSS
+    NopHtml.AppendCssFileParts("~/Plugins/Misc.Postcodes4U/Content/Postcodes4uStyle.css");    
+}
+
+
+@if (Model.CountryEnabled)
+{
+    <script type="text/javascript" asp-location="Footer">
+
+        // PAGE Load - 
+        //  KRF Fix 2020.07.20 - If Only one Country then Select It
+        $(document).ready(function () {
+            var countryObj = $("#@Html.IdFor(model => model.CountryId)")[0];
+            if (countryObj.length == 2) {
+                if (countryObj.value == 0) {
+                    countryObj.selectedIndex = 1;
+                    // Force Change - Reload Counties - KRF 2020.12.24
+                    $("#@Html.IdFor(model => model.CountryId)").trigger('change');
+                }
+            }
+        });
+
+
+        // ---------------------------------------------------------
+        // Show Postcodes4u Address Lookup If Selected Country Valid
+        //  - Country Dropdown Change Event
+        // ---------------------------------------------------------
+        $(document).ready(function () {
+            $("#@Html.IdFor(model => model.CountryId)").change(function () {
+
+                // KRF Fix 2020.07.20 - If Only one Country then Select It
+                var countryObj = $("#@Html.IdFor(model => model.CountryId)")[0];
+                if (countryObj.length == 2) {
+                    if (countryObj.value == 0) {
+                        countryObj.selectedIndex = 1;
+                    }
+                }
+
+                var selectedItem = this.options[this.selectedIndex].value;
+                var selectedCountryText = this.options[this.selectedIndex].text.toUpperCase();
+
+                displayPostcodes4uByName(selectedCountryText);
+                // OLD - displayPostcodes4u(selectedItem);
+            });
+        });
+
+       // ------------------------------------------
+       // Get Selected Postcode Information
+       //  - Postcode Address Dropdown Change Event
+       // ------------------------------------------
+       $(function () {
+            $(".ddlPostcodes").change(function () {
+                var postcodeId = this.options[this.selectedIndex].value;
+                var address1 = $("#@Html.IdFor(model => model.Address1)");
+                var address2 = $("#@Html.IdFor(model => model.Address2)");
+                var city = $("#@Html.IdFor(model => model.City)");
+                // County Text Field 2020.07.20 (KRF)
+                var county = $("#@Html.IdFor(model => model.County)");
+                var ddlStatesCounty = $("#@Html.IdFor(model => model.StateProvinceId)");
+
+                var postcode = $("#@Html.IdFor(model => model.ZipPostalCode)");
+                var company = $("#@Html.IdFor(model => model.Company)");
+                var postcodeResults = $(".postcode-results");
+                //var postcodeResults = $(".ddlPostcodes");
+
+                $.ajax({
+                    cache: false,
+                    type: "GET",
+                    url: "@(Url.Action("GetAddressById","Postcodes4u"))",
+                    data: { "postcodeId": postcodeId },
+                    success: function (data) {
+                        address1.val(data.Address1);
+                        address2.val(data.Address2);
+                        city.val(data.City);
+                        postcode.val(data.ZipPostalCode);
+
+                        // Optional Company Field
+                        if (company != null) company.val(data.Company);
+
+
+                        // Set County Name
+                        if (county != null) {
+                            county.val(data.County);
+                        }
+
+                        // Set States/Province To Returned County If Present - Updated 2020.03
+                        if (ddlStatesCounty != null && ddlStatesCounty[0] != null) {
+                            for (var i = 0; i < ddlStatesCounty[0].options.length; i++) {
+                                if (ddlStatesCounty[0].options[i].text === data.County) {
+                                    ddlStatesCounty[0].selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        postcodeResults.hide('slow');
+                        // postcodeResults.hide(); KRF 2021
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        alert('Failed to retrieve address.');
+                    }
+                });
+            });
+        });
+
+        // ------------
+        // getPostcodes
+        // ------------
+        // Get Addressed for Postcode Selection.
+        //
+        function getPostcodes() {
+            var postcode = $("#@Html.IdFor(model => model.ZipPostalCode)").val();
+
+            if (postcode != '') {
+                var ddlPostcodes = $(".ddlPostcodes");
+                var postcodeResults = $(".postcode-results");
+                var progress = $(".postcode-loading-progress");
+                progress.show();
+                $.ajax({
+                    cache: false,
+                    type: "GET",
+                    url: "@(Url.Action("ListAddresses","Postcodes4u"))",
+                    data: { "postcode": postcode },
+                    success: function (data) {
+                        ddlPostcodes.html('');
+                        // Add No Data Returned Processing - KRF 2020.03.01
+                        if (data != null && data.length > 0) {
+                            ddlPostcodes.append($('<option></option>').val(0).html('Please select an address'));
+                            $.each(data, function (id, option) {
+                                ddlPostcodes.append($('<option></option>').val(option.Id).html(option.Address));
+                            });
+                        } else {
+                            ddlPostcodes.append($('<option></option>').val(0).html('Invalid Postcode - No Addresses Returned'));
+                        }
+                        progress.hide();
+                        //postcodeResults.show(); KRF 2021
+                        postcodeResults.show("slow");
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        alert('Failed to retrieve postcodes.');
+                        progress.hide();
+                    }
+                });
+            }
+        }
+
+        // ------------------------------------------------
+        // Show Postcodes4u Lookup Button If Country Valid
+        // ------------------------------------------------
+        //
+        $(document).ready(function (){
+            var countryId = $("#@Html.IdFor(model => model.CountryId)").val();
+            if (countryId > 0) {
+                var selectedCountryText = $("#@Html.IdFor(model => model.CountryId) :selected").text().toUpperCase();
+
+                // UK Country ID Changed From 80 to 82 in Nop380
+                displayPostcodes4uByName(selectedCountryText);
+                // OLD - displayPostcodes4u(countryId);
+            } else {
+                $(".pc4uAddEditFindAddressButton").hide();
+            }
+        });
+
+        // displayPostcodes4uByName
+        // ------------------------
+        // Check if current country Valid for Postcodes4u Address Lookup
+        //
+        function displayPostcodes4uByName(searchCountryName) {
+            // NOTE - Ensure Passed 'searchCountryName' is UPPER CASE
+            // UK Country ID Changed From 80 to 82 in Nop3.80 -
+            // Nop 4.10 - UK Country ID Changed to 233 - SO Use Country Name
+            // NOP 4.40 'United Kingdom changed to 'United Kingdom of Great Britain and Northern Ireland'
+            //  so used 'startsWith'
+            if (searchCountryName.startsWith("UNITED KINGDOM") ||
+                searchCountryName.startsWith("GREAT BRITAIN") || searchCountryName == "ENGLAND" ||
+                searchCountryName == "SCOTLAND" || searchCountryName == "WALES") {
+                $(".pc4uAddEditFindAddressButton").show();
+            } else {
+                $(".pc4uAddEditFindAddressButton").hide();
+            }
+        }
+
+        //// displayPostcodes4u - NOT USED ANYMORE
+        //// --------------------------------------
+        //function displayPostcodes4u(countryId) {
+        //    // UK Country ID Changed From 80 to 82 in Nop380
+        //    // Nop 4.10 - UK Country ID Changed to 233
+        //    // Nop 4.40 - UK Country ID Changed to 235
+        //    if (countryId == 233) {
+        //        $(".pc4uAddEditFindAddressButton").show();
+        //    } else {
+        //        $(".pc4uAddEditFindAddressButton").hide();
+        //    }
+        //}
+        
+    </script>
+}
+
+<input class="address-id" asp-for="Id" type="hidden" />
+
+<div class="edit-address">
+    <div class="inputs pc4uAddEditAddrInput">
+        <label asp-for="FirstName" asp-postfix=":"></label>
+        <input asp-for="FirstName" />
+        <nop-required />
+        <span asp-validation-for="FirstName"></span>
+    </div>
+    <div class="inputs pc4uAddEditAddrInput">
+        <label asp-for="LastName" asp-postfix=":"></label>
+        <input asp-for="LastName" />
+        <nop-required />
+        <span asp-validation-for="LastName"></span>
+    </div>
+    <div class="inputs pc4uAddEditAddrInput">
+        <label asp-for="Email" asp-postfix=":"></label>
+        <input asp-for="Email" />
+        <nop-required />
+        <span asp-validation-for="Email"></span>
+    </div>
+    @if (Model.CompanyEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="Company" asp-postfix=":"></label>
+            <input asp-for="Company" />
+            @if (Model.CompanyRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="Company"></span>
+        </div>
+    }
+    @if (Model.CountryEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="CountryId" asp-postfix=":"></label>
+            <select asp-for="CountryId" asp-items="Model.AvailableCountries"
+                    data-trigger="country-select"
+                    data-url="@(Url.RouteUrl("GetStatesByCountryId"))"
+                    data-stateprovince="#@Html.IdFor(model => model.StateProvinceId)"
+                    data-loading="#states-loading-progress"></select>
+            <nop-required />
+            <span asp-validation-for="CountryId"></span>
+        </div>
+    }
+    @if (Model.ZipPostalCodeEnabled)
+    {
+<div class="inputs pc4uAddEditAddrPostcodeInput">
+    <label asp-for="ZipPostalCode" asp-postfix=":"></label>
+    <input asp-for="ZipPostalCode" class=" pc4uAddEditAddrPostcodeInputBox" />
+    @if (Model.ZipPostalCodeRequired)
+    {
+        <nop-required />
+    }
+    <span asp-validation-for="ZipPostalCode"></span>
+    <button type="button" class="button-1 pc4uAddEditFindAddressButton" onclick="getPostcodes();" style="display: none;">Find Address</button>    
+    <span style="display: none;" class="please-wait postcode-loading-progress">@T("Common.Wait...")</span>
+
+</div>
+    <div
+         class="inputs postcode-results" style="display: none;">
+        @Html.Label("Addresses: ")
+        <select class="ddlPostcodes"></select>
+    </div>
+    }
+    @if (Model.CountryEnabled && Model.StateProvinceEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="StateProvinceId" asp-postfix=":"></label>
+            <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+            <span id="states-loading-progress" style="display: none;" class="please-wait">@T("Common.Wait...")</span>
+            <span asp-validation-for="StateProvinceId"></span>
+        </div>
+    }
+    @if (Model.CountyEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="County" asp-postfix=":"></label>
+            <input asp-for="County" />
+            @if (Model.CountyRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="County"></span>
+        </div>
+    }
+    @if (Model.CityEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="City" asp-postfix=":"></label>
+            <input asp-for="City" />
+            @if (Model.CityRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="City"></span>
+        </div>
+    }
+    @if (Model.StreetAddressEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="Address1" asp-postfix=":"></label>
+            <input asp-for="Address1" />
+            @if (Model.StreetAddressRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="Address1"></span>
+        </div>
+    }
+    @if (Model.StreetAddress2Enabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="Address2" asp-postfix=":"></label>
+            <input asp-for="Address2" />
+            @if (Model.StreetAddress2Required)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="Address2"></span>
+        </div>
+    }
+
+    @if (Model.PhoneEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="PhoneNumber" asp-postfix=":"></label>
+            <input asp-for="PhoneNumber" />
+            @if (Model.PhoneRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="PhoneNumber"></span>
+        </div>
+    }
+    @if (Model.FaxEnabled)
+    {
+        <div class="inputs pc4uAddEditAddrInput">
+            <label asp-for="FaxNumber" asp-postfix=":"></label>
+            <input asp-for="FaxNumber" />
+            @if (Model.FaxRequired)
+            {
+                <nop-required />
+            }
+            <span asp-validation-for="FaxNumber"></span>
+        </div>
+    }
+    @if (Model.CustomAddressAttributes.Count > 0)
+    {
+        @await Html.PartialAsync("_AddressAttributes", Model.CustomAddressAttributes)
+    }
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.AddressBottom, additionalData = Model })
+</div>

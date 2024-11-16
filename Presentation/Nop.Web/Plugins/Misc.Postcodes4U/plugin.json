@@ -1,0 +1,11 @@
+{
+  "Group": "Misc",
+  "FriendlyName": "Postcodes4U Address Lookup",
+  "SystemName": "Misc.Postcodes4U",
+  "Version": "1.00",
+  "SupportedVersions": [ "4.70" ],
+  "Author": "3X Software Ltd",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Misc.Postcodes4U.dll",
+  "Description": "This plugin uses the postcodes4U address lookup webservice"
+}

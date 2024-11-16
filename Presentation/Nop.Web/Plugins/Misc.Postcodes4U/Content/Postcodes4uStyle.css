@@ -1,0 +1,177 @@
+﻿/* --------------------------------------------------------------------- 
+ * Postcodes4u UK Postcode Lookup Plugin
+ *  https://www.postcodes4u.co.uk
+ *  Address Form Styles
+ *
+ *  For 'Half Width' Address Input Fields uncomment the relevant CSS 
+ *   as detailed below
+ * --------------------------------------------------------------------- */
+
+
+/* ================================================== */
+/* FULL FORM WIDTH (Default) POSTCODES4u PAGE STYLING */
+/* ================================================== */
+
+    /* NORMAL FULL WIDTH FORM RESOLUTIONS (> 1200 Pixels)  */
+    @media all and (min-width: 1201px) {
+        .button-1.pc4uFindAddressButton {
+            padding: 6px 10px 12px 10px;
+            margin-left: 8px;
+        }
+
+        .button-1.pc4uAddEditFindAddressButton {
+            padding: 10px;
+            margin-left: 35%;
+            margin-top: 4px;
+        }
+    }
+
+    /* PostCodes4u LOOKUP POSTCODE Button Settings */
+    @media all and (min-width: 601px) and (max-width: 1200px) {
+
+        .button-1.pc4uFindAddressButton {
+            padding: 6px 10px 12px 10px;
+            margin-left: 8px;
+        }
+
+        .button-1.pc4uAddEditFindAddressButton {
+            padding: 6px 10px 12px 10px;
+            margin-left: 35%;
+            margin-top: 4px;
+        }
+    }
+
+    /* NORMAL FULL WIDTH FORM SCREEN RESOLUTIONS (> 500 Pixels)  */
+    @media all and (min-width: 601px) {
+
+        /* Checkout & Edit Customer Address (Views/Shared/_CreateOrUpdateAddress) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uAddEditAddrPostcodeInput {
+        float: none;
+        clear: none;
+        width: 50%;
+    }*/
+
+        /* Customer Info Address (Views/Customer/Info) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uInfoAddrPostcodeInput {
+        float: none;
+        clear: none;
+        width: 50%;
+    }*/
+
+        /* Customer Registration Address (Views/Customer/Register) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uRegAddrPostcodeInput {
+        float: none;
+        clear: none;
+        width: 50%;
+    }*/
+     
+
+        /* PostCodes4u LOOKUP POSTCODE Button Settings on Add/Edit Pages (Inc Checkout) */
+        /*.button-1.pc4uAddEditFindAddressButton {
+            padding: 10px 25px;
+            margin-left: 30%;
+        }*/
+    }
+
+
+    /* NARROW SCREEN RESOLUTIONS (< 500 Pixels)  */
+    @media all and (max-width: 600px) {
+        /* Narrow ScreenPostCodes4u LOOKUP POSTCODE Button Settings */
+        .button-1.pc4uFindAddressButton {
+            padding: 6px 10px 12px 10px;
+            margin-left: 5%;
+            margin-top: 4px;
+            float: left;
+        }
+        /* PostCodes4u LOOKUP POSTCODE Button Settings on Add/Edit Pages (Inc Checkout) */
+        .button-1.pc4uAddEditFindAddressButton {
+            padding: 6px 10px 12px 10px;
+            margin-left: 10%;
+            margin-top: 4px;
+            float: left;
+        }
+    }
+
+    /* ------------------------------------------------------- */
+    /*  End of FULL FORM WIDTH Postcodes4u Address Field CSS   */
+    /* ------------------------------------------------------- */
+
+
+
+    /* -------------------------------------------------------------------------------*/
+    /* For 'Half Width' Postcodes4u Address Input Fields uncomment the following CSS  */
+    /*  AND COMMENT OUT THE ABOVE FULL FORM WIDTH CSS                                 */
+    /*   NOTE. This is only for themes that are set up to display the Address Forms   */
+    /*          as 2 Columns   -     Eg NopThemes Avenue                              */
+    /* ------------------------------------------------------------------------------ */
+
+    /* HALF WIDTH FORM SCREEN RESOLUTIONS (> 500 Pixels)  */
+    @media all and (min-width: 601px) {
+        /* Checkout & Edit Customer Address (Views/Shared/_CreateOrUpdateAddress) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uAddEditAddrPostcodeInput {      
+        width: 40%;
+    }*/
+
+        /* Customer Info Address (Views/Customer/Info) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uInfoAddrPostcodeInput { 
+        width: 40%;
+    }*/
+
+        /* Customer Registration Address (Views/Customer/Register) Postcodes4u Postcodes Field Settings */
+        /*.inputs.pc4uRegAddrPostcodeInput {        
+        width: 40%;
+    }*/
+
+
+
+        /* Checkout & Edit Customer Address (Views/Shared/_CreateOrUpdateAddress) General Half Width Address Form Fields */
+        /*.inputs.pc4uAddEditAddrInput {
+        float: left;
+        clear: none;
+        width: 40%;
+    }*/
+
+        /* Customer Info Address (Views/Customer/Info)  General Half Width Address Form Fields */
+        /*.inputs.pc4uInfoAddrInput {
+         float: left;
+         clear: none;
+         width: 40%;
+     }*/
+
+        /* Customer Registration Address (Views/Customer/Register)  General Half Width Address Form Fields */
+        /*.inputs.pc4uRegAddrInput {
+         float: left;
+         clear: none;
+         width: 40%;
+     }*/
+
+        /* PostCodes4u LOOKUP POSTCODE Button Settings */
+        /*.button-1.pc4uFindAddressButton {
+        padding: 10px 25px;
+        margin-left: 8px;
+        clear: none;
+    }*/
+    }
+
+    /* HALF WIDTH FORM NARROW SCREEN RESOLUTIONS (< 500 Pixels)  */
+    /*@media all and (max-width: 600px) {*/
+    /* Narrow ScreenPost Codes4u LOOKUP POSTCODE Button Settings */
+    /*.button-1.pc4uFindAddressButton {
+        padding: 10px;
+        margin-left: 8px;
+        margin-top: 4px;
+        float: left;
+    }*/
+
+    /* PostCodes4u LOOKUP POSTCODE Button Settings on Add/Edit Pages (Inc Checkout) */
+    /*.button-1.pc4uAddEditFindAddressButton {
+        padding: 10px;
+        margin-left: 8px;
+        margin-top: 4px;
+        float: left;
+    }*/
+}
+
+/* -------------------------------------------------- */
+/*  End of Half width Postcodes4u Address Field CSS   */
+/* -------------------------------------------------- */

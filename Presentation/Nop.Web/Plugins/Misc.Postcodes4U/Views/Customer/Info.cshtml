@@ -1,0 +1,726 @@
+﻿@*=============================================================
+    Postcodes4u Custom - Customer Information (Account) Page
+        NOP 4.60 Updated KRF 2022.12.21
+        NOP 4.70 Updated KRF 2024.05.01
+==============================================================*@
+
+@using Nop.Core
+@using Nop.Web.Models.Common
+@using Nop.Web.Components
+@using Nop.Web.Framework.Infrastructure
+
+@using Nop.Web.Models.Customer
+@model CustomerInfoModel
+@inject Nop.Core.IWebHelper webHelper
+@{
+
+    Layout = "_ColumnsTwo";
+
+    //title
+    NopHtml.AddTitleParts(T("PageTitle.Account").Text);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-account-page");
+    NopHtml.AppendPageCssClassParts("html-customer-info-page");
+
+
+    // Load Postcodes4u Styling CSS
+    NopHtml.AppendCssFileParts("~/Plugins/Misc.Postcodes4U/Content/Postcodes4uStyle.css");
+}
+
+@section left
+    {
+    @await Component.InvokeAsync("CustomerNavigation", new { selectedTabId = CustomerNavigationEnum.Info })
+}
+
+@if (Model.CountryEnabled)
+{
+    <script asp-location="Footer">
+
+        // PAGE Load - 
+        //  KRF Fix 2020.07.20 - If Only one Country then Select It
+        $(document).ready(function () {
+            var countryObj = $("#@Html.IdFor(model => model.CountryId)")[0];
+            if (countryObj.length == 2) {
+                if (countryObj.value == 0) {
+                    countryObj.selectedIndex = 1;
+                    // Force Change - Reload Counties - KRF 2020.12.10
+                    $("#@Html.IdFor(model => model.CountryId)").trigger('change');
+                }
+            }
+        });
+
+
+       // ---------------------------------------------------------
+       // Show Postcodes4u Address Lookup If Selected Country Valid
+       //  - Country Dropdown Change Event
+       // ---------------------------------------------------------
+        $(function () {
+            $("#@Html.IdFor(model => model.CountryId)").change(function () {
+                // KRF Fix 2021.01.04 - If Only one Country then Select It
+                var countryObj = $("#@Html.IdFor(model => model.CountryId)")[0]
+                if (countryObj.size == 2) {
+                    if (countryObj.value == 0) {
+                        countryObj.selectedIndex = 1;
+                    }
+                }
+
+                var selectedItem = this.options[this.selectedIndex].value;
+                var selectedCountryText = this.options[this.selectedIndex].text.toUpperCase();
+
+                displayPostcodes4uByName(selectedCountryText);
+                // OLD - displayPostcodes4u(selectedItem);
+
+            });
+        });
+
+       // ------------------------------------------
+       // Get Selected Postcode Information
+       //  - Postcode Address Dropdown Change Event
+       // ------------------------------------------
+        $(function () {
+            $(".ddlPostcodes").change(function () {
+                var postcodeId = this.options[this.selectedIndex].value;
+                var address1 = $("#@Html.IdFor(model => model.StreetAddress)");
+                var address2 = $("#@Html.IdFor(model => model.StreetAddress2)");
+                var city = $("#@Html.IdFor(model => model.City)");
+                // County Text Field 2020.07.20 (KRF)
+                var county = $("#@Html.IdFor(model => model.County)");
+                var ddlStatesCounty = $("#@Html.IdFor(model => model.StateProvinceId)");
+                var postcode = $("#@Html.IdFor(model => model.ZipPostalCode)");
+                var company = $("#@Html.IdFor(model => model.Company)");
+                var postcodeResults = $(".postcode-results");
+
+                $.ajax({
+                    cache: false,
+                    type: "GET",
+                    url: '@(Url.Action("GetAddressById", "Postcodes4u"))',
+                    data: { "postcodeId": postcodeId },
+                    success: function (data) {
+                        address1.val(data.Address1);
+                        address2.val(data.Address2);
+                        city.val(data.City);
+                        postcode.val(data.ZipPostalCode);
+
+                        //$("#@Html.IdFor(model => model.StateProvinceId) option").filter(function() {
+                        //    return this.text == data.StateProvince.Name;
+                        //}).attr('selected', true);
+
+
+                        // Optional Company Field
+                        if (company != null) company.val(data.Company);
+                        postcodeResults.hide('slow');
+
+                        // County Text Field 2020.12.24 (KRF)
+
+                        // Set County Name
+                        if (county != null) {
+                            county.val(data.County);
+                        }
+
+                        // Set States/Province To Returned County - Updated 2020.03
+                        if (ddlStatesCounty != null && ddlStatesCounty[0] != null) {
+                            for (var i = 0; i < ddlStatesCounty[0].options.length; i++) {
+                                if (ddlStatesCounty[0].options[i].text === data.County) {
+                                    ddlStatesCounty[0].selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        alert('Failed to retrieve address.');
+                    }
+                });
+            });
+        });
+
+        // ------------
+        // getPostcodes
+        // ------------
+        // Get Addressed for Postcode Selection.
+        //
+        function getPostcodes() {
+            var postcode = $("#@Html.IdFor(model => model.ZipPostalCode)").val();
+
+            if (postcode != '') {
+                var ddlPostcodes = $(".ddlPostcodes");
+                var postcodeResults = $(".postcode-results");
+                var progress = $(".postcode-loading-progress");
+                progress.show();
+                $.ajax({
+                    cache: false,
+                    type: "GET",
+                    url: "@(Url.Action("ListAddresses", "Postcodes4u"))",
+                    data: { "postcode": postcode },
+                    success: function (data) {
+                        ddlPostcodes.html('');
+
+                        // Add No Data Returned Processing - KRF 2020.03.01
+                        if (data != null && data.length > 0) {
+                            ddlPostcodes.append($('<option></option>').val(0).html('Please select an address'));
+                            $.each(data, function (id, option) {
+                                ddlPostcodes.append($('<option></option>').val(option.Id).html(option.Address));
+                            });
+                        } else {
+                            ddlPostcodes.append($('<option></option>').val(0).html('Invalid Postcode - No Addresses Returned'));
+                        }
+                        progress.hide();
+                        postcodeResults.show("slow");
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        alert('Failed to retrieve postcodes.');
+                        progress.hide();
+                    }
+                });
+            }
+        }
+
+        // ------------------------------------------------
+        // Show Postcodes4u Lookup Button If Country Valid
+        // ------------------------------------------------
+        //
+        $(document).ready(function () {
+            var countryId = $("#@Html.IdFor(model => model.CountryId)").val();
+            var selectedCountryText = "";
+            if (countryId > 0) {
+                // Ensure Country Name is Upper Case
+                selectedCountryText = $("#@Html.IdFor(model => model.CountryId) :selected").text().toUpperCase();
+
+                // Country ID Not Fixed anymore - Use Country Name
+                displayPostcodes4uByName(selectedCountryText);
+                // OLD - displayPostcodes4u(countryId);
+            } else {
+                $(".pc4uFindAddressButton").hide();
+            }
+        });
+
+
+        // displayPostcodes4uByName
+        // ------------------------
+        // Check if current country Valid for Postcodes4u Address Lookup
+        //
+        function displayPostcodes4uByName(searchCountryName) {     
+            // NOTE - Ensure Passed 'searchCountryName' is UPPER CASE
+            // UK Country ID Changed From 80 to 82 in Nop3.80 -
+            // Nop 4.10 - UK Country ID Changed to 233 - So Use Country Name
+            // NOP 4.40 'United Kingdom changed to 'United Kingdom of Great Britain and Northern Ireland'
+            //  so used 'startsWith' on United Kingdom and Great Britain
+            if (searchCountryName.startsWith("UNITED KINGDOM") ||
+                searchCountryName.startsWith("GREAT BRITAIN") || searchCountryName == "ENGLAND" ||
+                searchCountryName == "SCOTLAND" || searchCountryName == "WALES") {
+                $(".pc4uFindAddressButton").show();
+            } else {
+                $(".pc4uFindAddressButton").hide();
+            }
+        }
+
+
+        //// displayPostcodes4u - NOT USED ANYMORE
+        //// --------------------------------------
+        ////  - AS ID Keeps Changing - USE 'displayPostcodes4uByName'
+        //function displayPostcodes4u(countryId) {
+        //    // UK Country ID Changed From 80 to 82 in Nop3.80
+        //    // Nop 4.10 - UK Country ID Changed to 233
+        //    // Nop 4.40 - UK Country ID Changed to 235
+        //    if (countryId == 82) {
+        //        $(".pc4uFindAddressButton").show();
+        //    } else {
+        //        $(".pc4uFindAddressButton").hide();
+        //    }
+        //}
+
+
+
+    </script>
+}
+
+
+<div class="page account-page customer-info-page">
+    <div class="page-title">
+        <h1>@T("Account.MyAccount") - @T("Account.CustomerInfo")</h1>
+    </div>
+    <div class="page-body">
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CustomerInfoTop, additionalData = Model })
+        <form asp-route="CustomerInfo" method="post">
+            <div asp-validation-summary="ModelOnly" class="message-error"></div>
+            <div class="fieldset">
+                <div class="title">
+                    <strong>@T("Account.YourPersonalDetails")</strong>
+                </div>
+                <div class="form-fields">
+                    @if (Model.GenderEnabled)
+                    {
+                        <div class="inputs ">
+                            <label>@T("Account.Fields.Gender"):</label>
+                            <div class="gender">
+                                <span class="male">
+                                    <input type="radio" asp-for="Gender" value="M" checked="@(Model.Gender == "M")" id="gender-male" />
+                                    <label class="forcheckbox" for="gender-male">@T("Account.Fields.Gender.Male")</label>
+                                </span>
+                                <span class="female">
+                                    <input type="radio" asp-for="Gender" value="F" checked="@(Model.Gender == "F")" id="gender-female" />
+                                    <label class="forcheckbox" for="gender-female">@T("Account.Fields.Gender.Female")</label>
+                                </span>
+                                @if (Model.NeutralGenderEnabled)
+                                {
+                                    <span class="Neutral">
+                                        <input type="radio" asp-for="Gender" value="N" checked="@(Model.Gender == "N")" id="gender-neutral" />
+                                        <label class="forcheckbox" for="gender-neutral">@T("Account.Fields.Gender.Neutral")</label>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (Model.FirstNameEnabled)
+                    {
+                        <div class="inputs pc4uInfoAddrInput">
+                            <label asp-for="FirstName" asp-postfix=":"></label>
+                            <input asp-for="FirstName" />
+                            @if (Model.FirstNameRequired)
+                            {
+                                <nop-required />
+                            }
+                            <span asp-validation-for="FirstName"></span>
+                        </div>
+                    }
+                    @if (Model.LastNameEnabled)
+                    {
+                        <div class="inputs pc4uInfoAddrInput">
+                            <label asp-for="LastName" asp-postfix=":"></label>
+                            <input asp-for="LastName" />
+                            @if (Model.LastNameRequired)
+                            {
+                                <nop-required />
+                            }
+                            <span asp-validation-for="LastName"></span>
+                        </div>
+                    }
+                    @if (Model.DateOfBirthEnabled)
+                    {
+                        <div class="inputs date-of-birth">
+                            <label>@T("Account.Fields.DateOfBirth"):</label>
+                            <nop-date-picker asp-day-name="@Html.NameFor(x => x.DateOfBirthDay)"
+                                             asp-month-name="@Html.NameFor(x => x.DateOfBirthMonth)"
+                                             asp-year-name="@Html.NameFor(x => x.DateOfBirthYear)"
+                                             asp-begin-year="@(DateTime.Now.AddYears(-110))"
+                                             asp-end-year="@(DateTime.UtcNow)"
+                                             asp-selected-date="@Model.ParseDateOfBirth()" />
+
+                            @if (Model.DateOfBirthRequired)
+                            {
+                                <nop-required />
+                            }
+                            <span asp-validation-for="DateOfBirthDay"></span>
+                            <span asp-validation-for="DateOfBirthMonth"></span>
+                            <span asp-validation-for="DateOfBirthYear"></span>
+                        </div>
+                    }
+                    <div class="inputs">
+                        <label asp-for="Email" asp-postfix=":"></label>
+                        <input asp-for="Email" />
+                        <nop-required />
+                        <span asp-validation-for="Email"></span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.EmailToRevalidate))
+                    {
+                        <div class="inputs">
+                            <label asp-for="EmailToRevalidate"></label>
+                            <span class="email-to-revalidate">@Model.EmailToRevalidate</span>
+                            <span class="email-to-revalidate-note">
+                                <em>@T("Account.Fields.EmailToRevalidate.Note")</em>
+                            </span>
+                        </div>
+                    }
+                    @if (Model.UsernamesEnabled)
+                    {
+                        if (Model.AllowUsersToChangeUsernames)
+                        {
+                            <div class="inputs">
+                                <label asp-for="Username" asp-postfix=":"></label>
+                                <input asp-for="Username" />
+                                <nop-required />
+                                <span asp-validation-for="Username"></span>
+                                @if (Model.CheckUsernameAvailabilityEnabled)
+                                {
+                                    @await Html.PartialAsync("_CheckUsernameAvailability")
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="inputs">
+                                <label asp-for="Username" asp-postfix=":"></label>
+                                <span class="readonly-username">@Model.Username</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+            @if (Model.CompanyEnabled || Model.DisplayVatNumber)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.CompanyDetails")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @if (Model.CompanyEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="Company" asp-postfix=":"></label>
+                                <input asp-for="Company" />
+                                @if (Model.CompanyRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="Company"></span>
+                            </div>
+                        }
+                        @if (Model.DisplayVatNumber)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="VatNumber" asp-postfix=":"></label>
+                                <input asp-for="VatNumber" />
+                                <span class="vat-status">@Model.VatNumberStatusNote</span>
+                                <span class="vat-note">
+                                    <em>@T("Account.Fields.VatNumber.Note")</em>
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.StreetAddressEnabled ||
+             Model.StreetAddress2Enabled ||
+             Model.ZipPostalCodeEnabled ||
+             Model.CityEnabled ||
+             Model.CountyEnabled ||
+             Model.CountryEnabled)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.YourAddress")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @if (Model.CountryEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="CountryId" asp-postfix=":"></label>
+                                <select asp-for="CountryId" asp-items="Model.AvailableCountries"
+                                        data-trigger="country-select"
+                                        data-url="@(Url.RouteUrl("GetStatesByCountryId"))"
+                                        data-stateprovince="#@Html.IdFor(model => model.StateProvinceId)"
+                                        data-loading="#states-loading-progress"></select>
+                                @if (Model.CountryRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="CountryId"></span>
+                            </div>
+
+                        }
+                        @if (Model.ZipPostalCodeEnabled)
+                        {
+                    <div class="inputs pc4uInfoAddrPostcodeInput">
+                        <label asp-for="ZipPostalCode" asp-postfix=":"></label>
+                        <input asp-for="ZipPostalCode" />
+                        @if (Model.ZipPostalCodeRequired)
+                        {
+                            <nop-required />
+                        }                        
+                        <button type="button" class="button-1 pc4uFindAddressButton" onclick="getPostcodes();" style="display: none;">Find Address</button>
+
+                        <span style="display: none;" class="please-wait postcode-loading-progress">@T("Common.Wait...")</span>
+                        <span asp-validation-for="ZipPostalCode"></span>
+                    </div>
+                            <div class="inputs postcode-results" style="display: none;">
+                                @Html.Label("Addresses: ")
+                                <select class="ddlPostcodes"></select>
+                            </div>
+                        }
+                        @if (Model.StreetAddressEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="StreetAddress" asp-postfix=":"></label>
+                                <input asp-for="StreetAddress" />
+                                @if (Model.StreetAddressRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="StreetAddress"></span>
+                            </div>
+                        }
+                        @if (Model.StreetAddress2Enabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="StreetAddress2" asp-postfix=":"></label>
+                                <input asp-for="StreetAddress2" />
+                                @if (Model.StreetAddress2Required)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="StreetAddress2"></span>
+                            </div>
+                        }
+
+                        @if (Model.CityEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="City" asp-postfix=":"></label>
+                                <input asp-for="City" />
+                                @if (Model.CityRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="City"></span>
+                            </div>
+                        }
+
+                        @if (Model.CountryEnabled && Model.StateProvinceEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="StateProvinceId" asp-postfix=":"></label>
+                                <select asp-for="StateProvinceId" asp-items="Model.AvailableStates"></select>
+                                @if (Model.StateProvinceRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span id="states-loading-progress" style="display: none;" class="please-wait">@T("Common.Wait...")</span>
+                                <span asp-validation-for="StateProvinceId"></span>
+                            </div>
+
+                        }
+
+                        @if (Model.CountyEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="County" asp-postfix=":"></label>
+                                <input asp-for="County" />
+                                @if (Model.CountyRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="County"></span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.PhoneEnabled || Model.FaxEnabled)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.YourContactInformation")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @if (Model.PhoneEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="Phone" asp-postfix=":"></label>
+                                <input asp-for="Phone" />
+                                @if (Model.PhoneRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="Phone"></span>
+                            </div>
+                        }
+                        @if (Model.FaxEnabled)
+                        {
+                            <div class="inputs pc4uInfoAddrInput">
+                                <label asp-for="Fax" asp-postfix=":"></label>
+                                <input asp-for="Fax" />
+                                @if (Model.FaxRequired)
+                                {
+                                    <nop-required />
+                                }
+                                <span asp-validation-for="Fax"></span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.NewsletterEnabled || Model.CustomerAttributes.Count > 0)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.Options")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @if (Model.NewsletterEnabled)
+                        {
+                            <div class="inputs">
+                                <label asp-for="Newsletter" asp-postfix=":"></label>
+                                <input asp-for="Newsletter" />
+                                <span asp-validation-for="Newsletter"></span>
+                            </div>
+                        }
+                        @if (Model.CustomerAttributes.Count > 0)
+                        {
+                            @await Html.PartialAsync("_CustomerAttributes", Model.CustomerAttributes)
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.AllowCustomersToSetTimeZone || Model.SignatureEnabled)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.Preferences")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @if (Model.AllowCustomersToSetTimeZone)
+                        {
+                            <div class="inputs">
+                                <label asp-for="TimeZoneId" asp-postfix=":"></label>
+                                <select asp-for="TimeZoneId" asp-items="Model.AvailableTimeZones"></select>
+                                <span asp-validation-for="TimeZoneId"></span>
+                            </div>
+                        }
+                        @if (Model.SignatureEnabled)
+                        {
+                            <div class="inputs">
+                                <label asp-for="Signature" asp-postfix=":"></label>
+                                <textarea asp-for="Signature" class="account-signature-text"></textarea>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.NumberOfExternalAuthenticationProviders > 0)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.AssociatedExternalAuth")</strong>
+                    </div>
+                    @if (Model.AssociatedExternalAuthRecords.Count > 0)
+                    {
+                        //existing associated external records
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <colgroup>
+                                    <col />
+                                    <col />
+                                    <col />
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th class="auth-method-name">
+                                            @T("Account.AssociatedExternalAuth.AuthMethodName")
+                                        </th>
+                                        <th class="email">
+                                            @T("Account.AssociatedExternalAuth.Email")
+                                        </th>
+                                        <th class="external-id">
+                                            @T("Account.AssociatedExternalAuth.ExternalIdentifier")
+                                        </th>
+                                        @if (Model.AllowCustomersToRemoveAssociations)
+                                        {
+                                            <th class="remove">
+                                                @T("Account.AssociatedExternalAuth.Remove")
+                                            </th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.AssociatedExternalAuthRecords)
+                                    {
+                                        <tr>
+                                            <td class="auth-method-name">
+                                                @item.AuthMethodName
+                                            </td>
+                                            <td class="email">
+                                                @item.Email
+                                            </td>
+                                            <td class="external-id">
+                                                @CommonHelper.EnsureMaximumLength(item.ExternalIdentifier, 40, "...")
+                                            </td>
+                                            @if (Model.AllowCustomersToRemoveAssociations)
+                                            {
+                                                <td class="remove">
+                                                    <a href="#" onclick="return removeexternalassociation(@item.Id)">@T("Account.AssociatedExternalAuth.Remove")</a>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    @if (Model.NumberOfExternalAuthenticationProviders > Model.AssociatedExternalAuthRecords.Count)
+                    {
+                        //we can add more external records
+                        var loginUrl = Url.RouteUrl("Login", null, webHelper.GetCurrentRequestProtocol());
+                        <div class="form-fields add-more-external-records">
+                            @T("Account.AssociatedExternalAuth.AddMoreRecords")
+                            <a href="@loginUrl">@loginUrl</a>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model.GdprConsents.Count > 0)
+            {
+                <div class="fieldset">
+                    <div class="title">
+                        <strong>@T("Account.UserAgreement")</strong>
+                    </div>
+                    <div class="form-fields">
+                        @foreach (var consent in Model.GdprConsents)
+                        {
+                            if (consent.IsRequired)
+                            {
+                                <script asp-location="Footer">
+                                    $(function () {
+                                        $('#save-info-button').on('click', function() {
+                                            if ($('#consent@(consent.Id)').is(':checked')) {
+                                                    //do some stuff
+                                                    return true;
+                                                } else {
+                                                    //just show validation errors, don't post
+                                               alert('@Html.Raw(JavaScriptEncoder.Default.Encode(consent.RequiredMessage))');
+                                                    return false;
+                                                }
+                                            });
+                                    });
+                                </script>
+                            }
+                            <div class="inputs accept-consent">
+                                <input id="consent@(consent.Id)" type="checkbox" name="consent@(consent.Id)" checked="@consent.Accepted" />
+                                <label for="consent@(consent.Id)">@consent.Message</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            <div class="buttons">
+                <button type="submit" id="save-info-button" name="save-info-button" class="button-1 save-customer-info-button">@T("Common.Save")</button>
+            </div>
+        </form>
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CustomerInfoBottom, additionalData = Model })
+    </div>
+</div>
+
+<script asp-location="Footer">
+    function removeexternalassociation(itemId) {
+        if (confirm('@T("Common.AreYouSure")')) {
+            var postData = {
+                id: itemId
+            };
+            addAntiForgeryToken(postData);
+            $.ajax({
+                cache: false,
+                type: "POST",
+                url: "@Url.RouteUrl("CustomerRemoveExternalAssociation")",
+                data: postData,
+                dataType: "json",
+                success: function (data, textStatus, jqXHR) {
+                    location.href = data.redirect;
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    alert('Failed to delete');
+                }
+            });
+        }
+        return false;
+    }
+</script>

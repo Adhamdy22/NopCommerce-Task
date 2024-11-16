@@ -1,0 +1,68 @@
+﻿@model ConfigurationModel
+@using Nop.Plugin.Misc.Postcodes4U.Models;
+@using Nop.Web.Framework;
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+@await Component.InvokeAsync("StoreScopeConfiguration")
+
+<form asp-controller="Postcodes4u" asp-action="Configure" method="post">
+    <div class="panel-group">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <h4>Please create an account at <a href="http://www.postcodes4u.co.uk">http://www.postcodes4u.co.uk</a> and enter your username and key into the configuration below</h4>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Username_OverrideForStore" asp-input="Username" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Username" />
+                    </div>
+                    <div class="col-md-3">
+                        <nop-editor asp-for="Username" />
+                        <span asp-validation-for="Username"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Password_OverrideForStore" asp-input="Password" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Password" />
+                    </div>
+                    <div class="col-md-3">
+                        <nop-editor asp-for="Password" />
+                        <span asp-validation-for="Password"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="SandboxEnabled_OverrideForStore" asp-input="SandboxEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="SandboxEnabled" />
+
+                    </div>
+                    <div class="col-md-6">
+                        <nop-editor asp-for="SandboxEnabled" />
+                        <span asp-validation-for="SandboxEnabled"></span>
+                        <p>@T("Plugins.Widgets.Postcodes4u.Fields.SandboxHelp")</p>
+                        <p>@T("Plugins.Widgets.Postcodes4u.Fields.SandboxHelp2")</p>
+                    </div>
+                </div>
+
+
+                <div class="form-group row">
+                    <div class="col-md-6 col-md-offset-3">
+                        <input type="submit" name="save" class="btn bg-blue" value="@T("Admin.Common.Save")" />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+   
+
+              
+    
+
